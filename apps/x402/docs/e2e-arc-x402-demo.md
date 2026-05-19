@@ -139,6 +139,22 @@ Open:
 
 - `https://examples.localhost/pay/attestation`
 
+## 7.1 Simplest browser flow (one button -> tx hash)
+
+For the most minimal end-to-end browser flow in this repo, use:
+
+- `https://examples.localhost/pay/simple-hash`
+
+This route is intentionally minimal:
+
+- connect wallet
+- click one button
+- wallet prompts for signature/payment
+- request is retried automatically with x402 payment headers
+- settlement transaction hash is displayed
+
+Default protected endpoint used by the flow is `/weather`.
+
 Tips:
 
 - switch to Arc testnet in the page before running
