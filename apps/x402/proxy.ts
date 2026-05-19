@@ -7,6 +7,7 @@ const PUBLIC_ROUTES = [
 	"/forgot-password",
 	"/reset-password",
 	"/verify-email",
+	"/weather",
 ];
 
 const PUBLIC_METADATA_ROUTES = ["/manifest.webmanifest", "/opengraph-image"];

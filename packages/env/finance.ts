@@ -5,7 +5,7 @@ export const env = createEnv({
 	server: {
 		VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
 		PORT: z.coerce.number().optional(),
-		PRIVATE_KEY: z.string(),
+		PRIVATE_KEY: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
 		CIRCLE_KIT_KEY: z.string(),
 		CIRCLE_API_KEY: z.string(),
 		CIRCLE_ENTITY_SECRET: z.string(),
