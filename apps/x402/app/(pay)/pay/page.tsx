@@ -9,7 +9,7 @@ export default function PayPage() {
 					className="text-blue-600 text-sm underline"
 					href="/pay/attestation"
 				>
-					Open Receipt Attestation Example
+					Open Browser E2E Receipt Attestation
 				</Link>
 			</div>
 			<Pay />
