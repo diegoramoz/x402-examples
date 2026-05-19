@@ -1,7 +1,7 @@
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { RouterClient } from "@orpc/server";
-import type { appRouter } from "@ramoz/api/routers/index";
+import type { appRouter } from "@/api/routers";
 
 declare global {
 	var $orpc: RouterClient<typeof appRouter> | undefined;

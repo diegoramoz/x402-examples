@@ -10,6 +10,8 @@ export const env = createEnv({
 		CIRCLE_API_KEY: z.string(),
 		CIRCLE_ENTITY_SECRET: z.string(),
 		CIRCLE_WALLET_SET_ID: z.string(),
+		NODE_ENV: z.enum(["development", "production"]),
+		FACILITATOR_API_KEY: z.string().min(1),
 	},
 	client: {},
 	runtimeEnv: {
@@ -20,6 +22,8 @@ export const env = createEnv({
 		CIRCLE_API_KEY: process.env.CIRCLE_API_KEY,
 		CIRCLE_ENTITY_SECRET: process.env.CIRCLE_ENTITY_SECRET,
 		CIRCLE_WALLET_SET_ID: process.env.CIRCLE_WALLET_SET_ID,
+		NODE_ENV: process.env.NODE_ENV,
+		FACILITATOR_API_KEY: process.env.FACILITATOR_API_KEY,
 	},
 	emptyStringAsUndefined: true,
 });

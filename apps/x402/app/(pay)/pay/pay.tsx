@@ -1,6 +1,5 @@
 "use client";
 
-import { HTTPFacilitatorClient } from "@x402/core/server";
 import { useEffect, useState } from "react";
 import { type Chain, type Hex, isAddress } from "viem";
 import {
@@ -11,27 +10,16 @@ import {
 	useSwitchChain,
 } from "wagmi";
 import { arcTestnet, baseSepolia } from "wagmi/chains";
+import type { X402VerifyRequestBody } from "@/api/schemas";
 import { ConnectWallet } from "@/app/(pay)/pay/connect-wallet";
+import { orpc } from "@/utils/orpc";
 
 const ARC_TESTNET_USDC_CONTRACT = "0x3600000000000000000000000000000000000000";
 const ARC_TESTNET_FAUCET_ADDRESS = "0xD844ba11F64d23a7481E24474D2f184e350B9B3d";
 const TEST_SELLER = "0xE0E3977473C8e04105B1Ff5cBCcDf9A1B49da4Ce";
 const TEST_CLIENT = "0xb7a8f6311E438b31d867e669BeBF5646DCC59DDb";
 
-const API_KEY = "test_key_placeholder";
-
-const FACILITATOR_URL = "https://x402.ramoz.dev/v2";
-
 const SUPPORTED_CHAINS: Chain[] = [baseSepolia, arcTestnet];
-
-const facilitatorClient = new HTTPFacilitatorClient({
-	url: FACILITATOR_URL,
-	createAuthHeaders: async () => ({
-		verify: { Authorization: `Bearer ${API_KEY}` },
-		settle: { Authorization: `Bearer ${API_KEY}` },
-		supported: {},
-	}),
-});
 
 function randomHex(bytes: number): Hex {
 	const values = new Uint8Array(bytes);
@@ -46,7 +34,7 @@ export default function Pay() {
 	const signMessage = useSignMessage();
 
 	const [network, setNetwork] = useState<`${string}:${string}`>(
-		`eip155:${baseSepolia.id}`,
+		`eip155:${baseSepolia.id}`
 	);
 	const [asset, setAsset] = useState(ARC_TESTNET_USDC_CONTRACT);
 	const [payTo, setPayTo] = useState(ARC_TESTNET_FAUCET_ADDRESS);
@@ -56,10 +44,10 @@ export default function Pay() {
 	const [isVerifying, setIsVerifying] = useState(false);
 	const [signature, setSignature] = useState<Hex | null>(null);
 	const [verificationResult, setVerificationResult] = useState<string | null>(
-		null,
+		null
 	);
 	const [verificationError, setVerificationError] = useState<string | null>(
-		null,
+		null
 	);
 	const [verificationMethod, setVerificationMethod] = useState<
 		"direct" | "facilitator"
@@ -97,9 +85,10 @@ export default function Pay() {
 		}
 
 		const now = Math.floor(Date.now() / 1000);
-		const paymentRequirements = {
+		const paymentRequirements: X402VerifyRequestBody["paymentRequirements"] = {
 			scheme: "exact",
-			network,
+			network:
+				network as X402VerifyRequestBody["paymentRequirements"]["network"],
 			asset,
 			amount,
 			payTo,
@@ -123,7 +112,7 @@ export default function Pay() {
 
 		setSignature(nextSignature as Hex);
 
-		const paymentPayload = {
+		const paymentPayload: X402VerifyRequestBody["paymentPayload"] = {
 			x402Version: 2,
 			payload: {
 				signature: nextSignature,
@@ -140,6 +129,12 @@ export default function Pay() {
 			extensions: {},
 		};
 
+		const verifyRequest: X402VerifyRequestBody = {
+			x402Version: 2,
+			paymentPayload,
+			paymentRequirements,
+		};
+
 		setIsVerifying(true);
 		setVerificationMethod(method);
 		setVerificationError(null);
@@ -147,35 +142,11 @@ export default function Pay() {
 
 		try {
 			if (method === "facilitator") {
-				const responseBody = await facilitatorClient.verify(
-					paymentPayload,
-					paymentRequirements,
-				);
-				setVerificationResult(JSON.stringify(responseBody, null, 2));
+				const response = await orpc.facilitator.verifyWithClient(verifyRequest);
+				setVerificationResult(JSON.stringify(response, null, 2));
 			} else {
-				const response = await fetch(`${FACILITATOR_URL}/verify`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Accept: "application/json",
-						Authorization: `Bearer ${API_KEY}`,
-					},
-					body: JSON.stringify({
-						x402Version: 2,
-						paymentPayload,
-						paymentRequirements,
-					}),
-				});
-
-				const responseBody = await response.json();
-
-				if (!response.ok) {
-					throw new Error(
-						`Verify failed with ${response.status}: ${JSON.stringify(responseBody)}`,
-					);
-				}
-
-				setVerificationResult(JSON.stringify(responseBody, null, 2));
+				const response = await orpc.facilitator.verifyWithFetch(verifyRequest);
+				setVerificationResult(JSON.stringify(response, null, 2));
 			}
 		} catch (error) {
 			const message =

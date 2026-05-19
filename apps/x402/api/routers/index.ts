@@ -5,9 +5,18 @@ import {
 	user as userTable,
 	wallet as walletTable,
 } from "@ramoz/db/schema";
+import { env } from "@ramoz/env/finance";
 import { eq } from "drizzle-orm";
 import { z } from "zod/v4";
-import { protectedProcedure } from "..";
+import { protectedProcedure } from "@/api";
+import {
+	facilitatorClient,
+	X402_FACILITATOR_BASE_URL,
+} from "@/api/facilitator";
+import {
+	x402VerifyRequestBodySchema,
+	x402VerifyResponseSchema,
+} from "@/api/schemas";
 
 // export const appRouter = {
 // 	healthCheck: publicProcedure.handler(() => {
@@ -20,6 +29,75 @@ import { protectedProcedure } from "..";
 // 		};
 // 	}),
 // };
+
+export const facilitatorRouter = {
+	// supportedWithClient: protectedProcedure.handler(async () => {
+	// 	const supported = (await facilitatorClient.getSupported()) as unknown;
+	// 	return { supported };
+	// }),
+
+	supportedWithFetch: protectedProcedure.handler(async () => {
+		const response = await fetch(`${X402_FACILITATOR_BASE_URL}/supported`, {
+			method: "GET",
+			headers: { Accept: "application/json" },
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				`Facilitator fetch failed with status ${response.status}`
+			);
+		}
+
+		const supported = (await response.json()) as unknown;
+		return { supported };
+	}),
+
+	verifyWithClient: protectedProcedure
+		.input(x402VerifyRequestBodySchema)
+		.handler(async ({ input }) => {
+			const response = (await facilitatorClient.verify(
+				input.paymentPayload,
+				input.paymentRequirements
+			)) as unknown;
+
+			const parsed = x402VerifyResponseSchema.safeParse(response);
+
+			if (parsed.success === false) {
+				throw new Error(
+					`Invalid response body: ${JSON.stringify(parsed.error.format())}`
+				);
+			}
+			return parsed.data;
+		}),
+
+	verifyWithFetch: protectedProcedure
+		.input(x402VerifyRequestBodySchema)
+		.handler(async ({ input }) => {
+			const response = await fetch(`${X402_FACILITATOR_BASE_URL}/verify`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json",
+					Authorization: `Bearer ${env.FACILITATOR_API_KEY}`,
+				},
+				body: JSON.stringify({
+					x402Version: 2,
+					paymentPayload: input.paymentPayload,
+					paymentRequirements: input.paymentRequirements,
+				}),
+			});
+
+			const parsed = x402VerifyResponseSchema.safeParse(response);
+
+			if (parsed.success === false) {
+				throw new Error(
+					`Invalid request body: ${JSON.stringify(parsed.error.format())}`
+				);
+			}
+
+			return parsed.data;
+		}),
+};
 
 const userRouter = {
 	create: protectedProcedure
@@ -101,9 +179,16 @@ const walletRouter = {
 		}),
 };
 
-export const appRouter = {
+type AppRouterShape = {
+	user: typeof userRouter;
+	wallet: typeof walletRouter;
+	facilitator: typeof facilitatorRouter;
+};
+
+export const appRouter: AppRouterShape = {
 	user: userRouter,
 	wallet: walletRouter,
+	facilitator: facilitatorRouter,
 };
 
 export type AppRouter = typeof appRouter;

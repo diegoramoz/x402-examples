@@ -1,9 +1,9 @@
 {
-  "name": "x402",
+  "name": "x402-examples",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "portless x402 next dev",
+    "dev": "portless examples next dev ",
     "build": "next build",
     "start": "next start"
   },
@@ -16,7 +16,6 @@
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
-    "@ramoz/api": "workspace:*",
     "@ramoz/auth": "workspace:*",
     "@ramoz/db": "workspace:*",
     "@ramoz/env": "workspace:*",

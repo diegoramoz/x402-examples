@@ -3,9 +3,9 @@ import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
-import { createContext } from "@ramoz/api/context";
-import { appRouter } from "@ramoz/api/routers/index";
 import type { NextRequest } from "next/server";
+import { createContext } from "@/api/context";
+import { appRouter } from "@/api/routers";
 
 const rpcHandler = new RPCHandler(appRouter, {
 	interceptors: [

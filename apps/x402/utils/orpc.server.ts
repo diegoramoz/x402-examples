@@ -1,9 +1,9 @@
 import "server-only";
 
 import { createRouterClient } from "@orpc/server";
-import { appRouter } from "@ramoz/api/routers/index";
 import { auth } from "@ramoz/auth";
 import { headers } from "next/headers";
+import { appRouter } from "@/api/routers";
 
 export const orpc = createRouterClient(appRouter, {
 	context: async () => {
