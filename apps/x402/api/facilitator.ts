@@ -5,7 +5,7 @@ import { parseUnits } from "viem";
 import type { SupportedChainCAIP2 } from "@/api/chains";
 import { ARC_USDC_ADDRESS } from "@/lib/constants";
 
-const PROD_X402_FACILITATOR_BASE_URL = "https://facilitator.ramoz.dev/v2";
+const PROD_X402_FACILITATOR_BASE_URL = "https://x402.ramoz.dev/v2";
 const DEV_X402_FACILITATOR_BASE_URL = "https://facilitator.localhost/v2";
 
 export const X402_FACILITATOR_BASE_URL =
