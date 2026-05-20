@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { BaseError } from "wagmi";
 import {
 	useChainId,
@@ -20,19 +20,6 @@ type MockPaymentRequirements = {
 	maxTimeoutSeconds: number;
 };
 
-type EndpointChallengeResponse = {
-	status: 402;
-	body: {
-		error: "x402_payment_required";
-		message: string;
-		paymentRequirements: MockPaymentRequirements;
-	};
-	headers: {
-		"x-mock-flow": "challenge";
-		"x-mock-step": "1";
-	};
-};
-
 type EndpointPaidResponse = {
 	status: 200;
 	body: {
@@ -45,17 +32,9 @@ type EndpointPaidResponse = {
 		};
 	};
 	headers: {
-		"x-mock-flow": "settled";
-		"x-mock-step": "3";
 		"x-payment-transaction": `0x${string}`;
 	};
 };
-
-function randomHex(bytes: number): `0x${string}` {
-	const values = new Uint8Array(bytes);
-	crypto.getRandomValues(values);
-	return `0x${Array.from(values, (value) => value.toString(16).padStart(2, "0")).join("")}`;
-}
 
 export default function SimulatedWithEndpointPage() {
 	const chainId = useChainId();
@@ -66,14 +45,12 @@ export default function SimulatedWithEndpointPage() {
 	const [isRunning, setIsRunning] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [txHash, setTxHash] = useState<string | null>(null);
-	const [challenge, setChallenge] = useState<EndpointChallengeResponse | null>(
+	const [challenge, setChallenge] = useState<MockPaymentRequirements | null>(
 		null
 	);
 	const [signedPayload, setSignedPayload] = useState<string | null>(null);
 	const [finalResponse, setFinalResponse] =
 		useState<EndpointPaidResponse | null>(null);
-
-	const currentNetwork = useMemo(() => `eip155:${chainId}`, [chainId]);
 
 	const runFlow = async () => {
 		const isWalletReady = Boolean(isConnected && address);
@@ -98,11 +75,8 @@ export default function SimulatedWithEndpointPage() {
 				},
 			});
 
-			const challengeBody = (await challengeHttpResponse.json()) as {
-				error: "x402_payment_required";
-				message: string;
-				paymentRequirements: MockPaymentRequirements;
-			};
+			const PAYMENT_REQUIRED =
+				challengeHttpResponse.headers.get("PAYMENT-REQUIRED");
 
 			if (challengeHttpResponse.status !== 402) {
 				throw new Error(
@@ -110,22 +84,21 @@ export default function SimulatedWithEndpointPage() {
 				);
 			}
 
-			const challengeResponse: EndpointChallengeResponse = {
-				status: 402,
-				body: challengeBody,
-				headers: {
-					"x-mock-flow": "challenge",
-					"x-mock-step": "1",
-				},
-			};
-			setChallenge(challengeResponse);
+			if (!PAYMENT_REQUIRED) {
+				throw new Error(
+					"Expected PAYMENT-REQUIRED header with challenge, but it was missing."
+				);
+			}
+
+			const paymentRequirements: MockPaymentRequirements = JSON.parse(
+				atob(PAYMENT_REQUIRED)
+			);
+
+			setChallenge(paymentRequirements);
 
 			const mockMessage = JSON.stringify({
 				x402Version: 2,
-				step: "sign-payment-authorization",
-				network: currentNetwork,
-				request: "GET /pay-here",
-				paymentRequirements: challengeResponse.body.paymentRequirements,
+				paymentRequirements,
 			});
 
 			const signature = (await signMessage.mutateAsync({
@@ -134,25 +107,41 @@ export default function SimulatedWithEndpointPage() {
 
 			const payload = {
 				x402Version: 2,
-				accepted: challengeResponse.body.paymentRequirements,
-				payload: {
-					authorization: {
-						from: address,
-						to: challengeResponse.body.paymentRequirements.payTo,
-						value: challengeResponse.body.paymentRequirements.amount,
-						nonce: randomHex(32),
+				paymentPayload: {
+					x402Version: 2,
+					payload: {
+						signature,
+						authorization: {
+							from: "",
+							to: "",
+							value: "",
+							validAfter: "",
+							validBefore: "",
+							nonce: "",
+						},
 					},
-					signature,
+					accepted: {
+						scheme: "exact",
+						network: "eip155:8453",
+						asset: "",
+						amount: "",
+						payTo: "",
+						maxTimeoutSeconds: 0,
+						extra: {},
+					},
+					resource: {},
+					extensions: {},
 				},
+				paymentRequirements,
 			};
+
 			const serializedPayload = JSON.stringify(payload);
 			setSignedPayload(JSON.stringify(payload, null, 2));
 
 			const settledHttpResponse = await fetch("/pay-here", {
 				method: "GET",
 				headers: {
-					"x-chain-id": `${chainId}`,
-					"x-payment-response": serializedPayload,
+					"PAYMENT-SIGNATURE": serializedPayload,
 				},
 			});
 
@@ -168,8 +157,6 @@ export default function SimulatedWithEndpointPage() {
 				status: 200,
 				body: settledBody,
 				headers: {
-					"x-mock-flow": "settled",
-					"x-mock-step": "3",
 					"x-payment-transaction":
 						(settledHttpResponse.headers.get(
 							"x-payment-transaction"

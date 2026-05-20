@@ -5,7 +5,7 @@ import { evmPaywall } from "@x402/paywall/evm";
 import { type NextRequest, NextResponse } from "next/server";
 import type { SupportedChainCAIP2 } from "@/api/chains";
 import { x402Server } from "@/api/facilitator";
-import { CLIENT_ADDRESS } from "@/lib/constants";
+import { SELLER_ADDRESS } from "@/lib/constants";
 
 // Build paywall
 export const paywall = createPaywall()
@@ -50,9 +50,9 @@ export const GET = withX402(
 		accepts: [
 			{
 				scheme: "exact",
-				price: "$0.001",
+				price: "$1",
 				network: "eip155:5042002" satisfies SupportedChainCAIP2,
-				payTo: CLIENT_ADDRESS,
+				payTo: SELLER_ADDRESS,
 			},
 		],
 		description: "Access to weather API",

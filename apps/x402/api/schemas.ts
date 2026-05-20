@@ -142,7 +142,7 @@ const paymentPayloadOption2Schema = z.object({
 	extensions: extensionsSchema,
 });
 
-const paymentRequirementsOption1Schema = z.object({
+export const paymentRequirementsOption1Schema = z.object({
 	scheme: schemeSchema,
 	network: networkCAIP2Schema,
 	asset: evmChecksumAddressSchema.or(base58SolanaAddressSchema),

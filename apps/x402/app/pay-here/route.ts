@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 
 const MOCK_ASSET = "0x3600000000000000000000000000000000000000";
@@ -17,8 +16,7 @@ type MockPaymentRequirements = {
 };
 
 type MockChallengeBody = {
-	error: "x402_payment_required";
-	message: string;
+	x402Version: "2";
 	paymentRequirements: MockPaymentRequirements;
 };
 
@@ -29,6 +27,7 @@ type MockPaidBody = {
 		city: string;
 		temperatureC: number;
 		condition: string;
+		"x-payment-transaction": `0x${string}`;
 	};
 };
 
@@ -50,28 +49,19 @@ function toNetwork(value: string | null): `eip155:${number}` {
 }
 
 function getPaymentProof(request: Request): string | null {
-	const candidateHeaders = [
-		"x-payment-response",
-		"payment-response",
-		"x-payment",
-		"payment",
-		"authorization",
-	];
+	const value = request.headers.get("PAYMENT-SIGNATURE");
 
-	for (const name of candidateHeaders) {
-		const value = request.headers.get(name);
-		if (value) {
-			return value;
-		}
+	if (value) {
+		return value;
 	}
 
 	return null;
 }
 
-function buildMockChallenge(network: `eip155:${number}`): MockChallengeBody {
-	return {
-		error: "x402_payment_required",
-		message: "Payment required for GET /pay-here",
+function buildMockChallenge(network: `eip155:${number}`) {
+	// return as b64 encoded string
+	const challenge: MockChallengeBody = {
+		x402Version: "2",
 		paymentRequirements: {
 			scheme: "exact",
 			network,
@@ -81,23 +71,25 @@ function buildMockChallenge(network: `eip155:${number}`): MockChallengeBody {
 			maxTimeoutSeconds: 60,
 		},
 	};
+
+	const challengeb64 = btoa(JSON.stringify(challenge));
+
+	return challengeb64;
 }
 
-function txHashFromPaymentProof(paymentProof: string): `0x${string}` {
-	const digest = createHash("sha256").update(paymentProof).digest("hex");
-	return `0x${digest}`;
-}
-
-function buildMockPaidResponse(): MockPaidBody {
-	return {
+function buildMockPaidResponse() {
+	const data: MockPaidBody = {
 		ok: true,
 		source: "mock-402-simulator",
 		data: {
 			city: "San Francisco",
 			temperatureC: 17,
 			condition: "Foggy",
+			"x-payment-transaction": "0x0000000000000000000000000000000000000001",
 		},
 	};
+
+	return btoa(JSON.stringify(data));
 }
 
 export function GET(request: Request) {
@@ -105,24 +97,19 @@ export function GET(request: Request) {
 	const paymentProof = getPaymentProof(request);
 
 	if (!paymentProof) {
-		return NextResponse.json(buildMockChallenge(network), {
+		return new NextResponse(null, {
 			status: 402,
 			headers: {
-				"x-mock-flow": "challenge",
-				"x-mock-step": "1",
+				"payment-required": buildMockChallenge(network),
 				"cache-control": "no-store",
 			},
 		});
 	}
 
-	const txHash = txHashFromPaymentProof(paymentProof);
-
-	return NextResponse.json(buildMockPaidResponse(), {
+	return new NextResponse(null, {
 		status: 200,
 		headers: {
-			"x-mock-flow": "settled",
-			"x-mock-step": "3",
-			"x-payment-transaction": txHash,
+			"payment-response": buildMockPaidResponse(),
 			"cache-control": "no-store",
 		},
 	});
