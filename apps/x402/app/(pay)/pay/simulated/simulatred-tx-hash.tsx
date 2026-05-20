@@ -105,7 +105,7 @@ function buildMockPaidResponse(signature: `0x${string}`): MockPaidResponse {
 	};
 }
 
-export function simulatedTxHashFlow() {
+export function SimulatedTxHashFlow() {
 	const chainId = useChainId();
 	const { address, isConnected } = useConnection();
 	const switchChain = useSwitchChain();
