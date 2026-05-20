@@ -11,11 +11,15 @@ export default function PayPage() {
 				>
 					Open Simplest Tx Hash Flow
 				</Link>
+				<Link className="text-blue-600 text-sm underline" href="/pay/simulated">
+					Open simulated 402 Flow (No Endpoint Call)
+				</Link>
+
 				<Link
 					className="text-blue-600 text-sm underline"
-					href="/pay/simulatred"
+					href="/pay/simulated-with-endpoint"
 				>
-					Open Simulatred 402 Flow (No Endpoint Call)
+					Open simulated 402 Flow (With Endpoint Call)
 				</Link>
 				<Link
 					className="text-blue-600 text-sm underline"

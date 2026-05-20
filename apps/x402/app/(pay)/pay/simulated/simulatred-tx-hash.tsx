@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 import type { BaseError } from "wagmi";
-import { useChainId, useConnection, useSignMessage, useSwitchChain } from "wagmi";
+import {
+	useChainId,
+	useConnection,
+	useSignMessage,
+	useSwitchChain,
+} from "wagmi";
 import { arcTestnet } from "wagmi/chains";
 import { ConnectWallet } from "@/app/(pay)/pay/connect-wallet";
 
@@ -100,7 +105,7 @@ function buildMockPaidResponse(signature: `0x${string}`): MockPaidResponse {
 	};
 }
 
-export function SimulatredTxHashFlow() {
+export function simulatedTxHashFlow() {
 	const chainId = useChainId();
 	const { address, isConnected } = useConnection();
 	const switchChain = useSwitchChain();
@@ -109,9 +114,13 @@ export function SimulatredTxHashFlow() {
 	const [isRunning, setIsRunning] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [txHash, setTxHash] = useState<string | null>(null);
-	const [challenge, setChallenge] = useState<MockChallengeResponse | null>(null);
+	const [challenge, setChallenge] = useState<MockChallengeResponse | null>(
+		null
+	);
 	const [signedPayload, setSignedPayload] = useState<string | null>(null);
-	const [finalResponse, setFinalResponse] = useState<MockPaidResponse | null>(null);
+	const [finalResponse, setFinalResponse] = useState<MockPaidResponse | null>(
+		null
+	);
 
 	const currentNetwork = useMemo(() => `eip155:${chainId}`, [chainId]);
 
@@ -177,7 +186,7 @@ export function SimulatredTxHashFlow() {
 
 	return (
 		<div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6">
-			<h1 className="font-semibold text-2xl">Simulatred 402 Tx Hash Flow</h1>
+			<h1 className="font-semibold text-2xl">simulated 402 Tx Hash Flow</h1>
 			<p className="text-gray-700 text-sm">
 				This page does not call a protected endpoint. It uses local mock 402
 				challenge and settlement data so each payment step can be debugged in
@@ -202,7 +211,9 @@ export function SimulatredTxHashFlow() {
 				onClick={runFlow}
 				type="button"
 			>
-				{isRunning ? "Running simulation..." : "Run simulated /weather x402 flow"}
+				{isRunning
+					? "Running simulation..."
+					: "Run simulated /weather x402 flow"}
 			</button>
 
 			{txHash && (
