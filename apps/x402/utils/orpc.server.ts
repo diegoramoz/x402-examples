@@ -15,4 +15,4 @@ export const orpc = createRouterClient(appRouter, {
 	},
 });
 
-globalThis.$orpc = orpc;
+globalThis.$client = orpc;

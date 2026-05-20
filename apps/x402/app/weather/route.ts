@@ -1,4 +1,4 @@
-// import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { withX402 } from "@x402/next";
 import { createPaywall } from "@x402/paywall";
 import { evmPaywall } from "@x402/paywall/evm";
@@ -57,18 +57,18 @@ export const GET = withX402(
 		],
 		description: "Access to weather API",
 		mimeType: "application/json",
-		// extensions: {
-		// 	...declareDiscoveryExtension({
-		// 		output: {
-		// 			example: {
-		// 				report: {
-		// 					weather: "sunny",
-		// 					temperature: 72,
-		// 				},
-		// 			},
-		// 		},
-		// 	}),
-		// },
+		extensions: {
+			...declareDiscoveryExtension({
+				output: {
+					example: {
+						report: {
+							weather: "sunny",
+							temperature: 72,
+						},
+					},
+				},
+			}),
+		},
 	},
 	x402Server,
 	undefined, // paywallConfig (using custom paywall from proxy.ts)

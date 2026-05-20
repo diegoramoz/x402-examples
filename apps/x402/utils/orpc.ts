@@ -1,24 +1,30 @@
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
+import { BatchLinkPlugin } from "@orpc/client/plugins";
 import type { RouterClient } from "@orpc/server";
 import type { appRouter } from "@/api/routers";
 
 declare global {
-	var $orpc: RouterClient<typeof appRouter> | undefined;
+	var $client: RouterClient<typeof appRouter> | undefined;
 }
 
 const link = new RPCLink({
-	url: () => {
-		if (typeof window === "undefined") {
-			throw new Error("RPCLink is not allowed on the server side.");
-		}
-
-		return `${window.location.origin}/rpc`;
-	},
+	url: `${typeof window === "undefined" ? "https://x402.localhost" : window.location.origin}/rpc`,
+	plugins: [
+		new BatchLinkPlugin({
+			exclude: ({ path }) => path[0] === "sse",
+			groups: [
+				{
+					condition: () => true,
+					context: {},
+				},
+			],
+		}),
+	],
 });
 
 /**
  * Fallback to client-side client if server-side client is not available.
  */
 export const orpc: RouterClient<typeof appRouter> =
-	globalThis.$orpc ?? createORPCClient(link);
+	globalThis.$client ?? createORPCClient(link);

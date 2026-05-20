@@ -1,25 +1,69 @@
 "use client";
 
-import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { type ClientEvmSigner, toClientEvmSigner } from "@x402/evm";
+import { ExactEvmScheme } from "@x402/evm/exact/client";
 import { wrapFetchWithPayment, x402Client, x402HTTPClient } from "@x402/fetch";
 import { useState } from "react";
+import type { Account, PublicClient, WalletClient } from "viem";
 import {
 	type BaseError,
 	useChainId,
 	useConnection,
+	usePublicClient,
 	useSwitchChain,
 	useWalletClient,
 } from "wagmi";
 import { arcTestnet } from "wagmi/chains";
 import { ConnectWallet } from "@/app/(pay)/pay/connect-wallet";
 
+/**
+ * Converts a wagmi/viem WalletClient to a ClientEvmSigner for x402Client
+ */
+function wagmiToClientSigner(
+	walletClient: WalletClient,
+	publicClient: PublicClient
+): ClientEvmSigner {
+	if (!walletClient.account) {
+		throw new Error("Wallet client must have an account");
+	}
+
+	const readContractAdapter = {
+		readContract(args: {
+			address: `0x${string}`;
+			abi: readonly unknown[];
+			functionName: string;
+			args?: readonly unknown[];
+		}): Promise<unknown> {
+			return publicClient.readContract(args);
+		},
+	};
+
+	return toClientEvmSigner(
+		{
+			address: walletClient.account.address,
+			signTypedData: async (message) => {
+				const signature = await walletClient.signTypedData({
+					account: walletClient.account as Account,
+					domain: message.domain,
+					types: message.types,
+					primaryType: message.primaryType,
+					message: message.message,
+				});
+				return signature;
+			},
+		},
+		readContractAdapter
+	);
+}
+
 const PROTECTED_PATH = "/weather";
 
 export function SimpleTxHashFlow() {
 	const chainId = useChainId();
 	const { address, isConnected } = useConnection();
-	const { data: walletClient } = useWalletClient();
 	const switchChain = useSwitchChain();
+	const publicClient = usePublicClient();
+	const walletClient = useWalletClient();
 
 	const [isRunning, setIsRunning] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -28,7 +72,8 @@ export function SimpleTxHashFlow() {
 	const [responseBody, setResponseBody] = useState<string | null>(null);
 
 	const runFlow = async () => {
-		const isWalletReady = isConnected && !!address && !!walletClient;
+		const isWalletReady =
+			isConnected && !!address && !!walletClient.data && !!publicClient;
 
 		if (!isWalletReady) {
 			setErrorMessage("Connect your wallet before running the flow.");
@@ -42,47 +87,28 @@ export function SimpleTxHashFlow() {
 		setResponseBody(null);
 
 		try {
-			const signer = {
-				address,
-				signTypedData: async ({
-					domain,
-					message,
-					primaryType,
-					types,
-				}: {
-					domain: Record<string, unknown>;
-					message: Record<string, unknown>;
-					primaryType: string;
-					types: Record<string, unknown>;
-				}) =>
-					(
-						walletClient as {
-							signTypedData: (args: unknown) => Promise<`0x${string}`>;
-						}
-					).signTypedData({
-						account: address,
-						domain: domain as never,
-						message: message as never,
-						primaryType: primaryType as never,
-						types: types as never,
-					}),
-			};
+			const clientX402 = new x402Client();
+			const signer = wagmiToClientSigner(walletClient.data, publicClient);
+			clientX402.register("eip155:*", new ExactEvmScheme(signer));
 
-			const client = new x402Client();
-			registerExactEvmScheme(client, { signer });
-
-			const fetchWithPayment = wrapFetchWithPayment(fetch, client);
+			const fetchWithPayment = wrapFetchWithPayment(fetch, clientX402);
 			const response = await fetchWithPayment(
 				`${window.location.origin}${PROTECTED_PATH}`,
 				{ method: "GET" }
 			);
 
 			setResponseStatus(response.status);
-			setResponseBody(await response.text());
+			const json = await response.json();
+			console.log("Response body:", json);
+			setResponseBody(JSON.stringify(json, null, 2));
 
 			const settleResponse = new x402HTTPClient(
-				client
-			).getPaymentSettleResponse((name) => response.headers.get(name));
+				clientX402
+			).getPaymentSettleResponse((name) => {
+				const header = response.headers.get(name);
+				console.log(`Header ${name}:`, header);
+				return header;
+			});
 
 			setTxHash(settleResponse.transaction);
 

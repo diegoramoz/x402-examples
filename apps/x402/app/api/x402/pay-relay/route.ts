@@ -8,7 +8,7 @@ type RelayRequestBody = {
 
 const ALLOWED_HOSTS = new Set([
 	"localhost",
-	"examples.localhost",
+	"facilitator.localhost",
 	"x402.localhost",
 ]);
 

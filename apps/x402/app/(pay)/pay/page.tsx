@@ -13,6 +13,12 @@ export default function PayPage() {
 				</Link>
 				<Link
 					className="text-blue-600 text-sm underline"
+					href="/pay/simulatred"
+				>
+					Open Simulatred 402 Flow (No Endpoint Call)
+				</Link>
+				<Link
+					className="text-blue-600 text-sm underline"
 					href="/pay/attestation"
 				>
 					Open Browser E2E Receipt Attestation

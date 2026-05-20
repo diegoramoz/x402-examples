@@ -1,8 +1,6 @@
-import { OpenAPIHandler } from "@orpc/openapi/fetch";
-import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
-import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
+import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import type { NextRequest } from "next/server";
 import { createContext } from "@/api/context";
 import { appRouter } from "@/api/routers";
@@ -13,18 +11,7 @@ const rpcHandler = new RPCHandler(appRouter, {
 			console.error(error);
 		}),
 	],
-});
-const apiHandler = new OpenAPIHandler(appRouter, {
-	plugins: [
-		new OpenAPIReferencePlugin({
-			schemaConverters: [new ZodToJsonSchemaConverter()],
-		}),
-	],
-	interceptors: [
-		onError((error) => {
-			console.error(error);
-		}),
-	],
+	plugins: [new BatchHandlerPlugin()],
 });
 
 async function handleRequest(req: NextRequest) {
@@ -34,21 +21,15 @@ async function handleRequest(req: NextRequest) {
 		prefix: "/rpc",
 		context,
 	});
+
 	if (rpcResult.response) {
 		return rpcResult.response;
-	}
-
-	const apiResult = await apiHandler.handle(req, {
-		prefix: "/rpc/api-reference",
-		context,
-	});
-	if (apiResult.response) {
-		return apiResult.response;
 	}
 
 	return new Response("Not found", { status: 404 });
 }
 
+export const HEAD = handleRequest;
 export const GET = handleRequest;
 export const POST = handleRequest;
 export const PUT = handleRequest;
