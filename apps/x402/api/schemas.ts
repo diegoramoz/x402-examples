@@ -126,8 +126,8 @@ const paymentPayloadOption1Schema = z.object({
 	x402Version: x402VersionSchema,
 	payload: x402ExactEvmPayload.or(x402ExactEvmPermit2Payload),
 	accepted: acceptedSchema,
-	resource: resourceSchema,
-	extensions: extensionsSchema,
+	resource: resourceSchema.optional(),
+	extensions: extensionsSchema.optional(),
 });
 
 const networkSchema = z.enum(supportedNetworks);
@@ -138,11 +138,11 @@ const paymentPayloadOption2Schema = z.object({
 	network: networkSchema,
 	payload: x402ExactEvmPayload.or(x402ExactEvmPermit2Payload),
 	accepted: acceptedSchema,
-	resource: resourceSchema,
-	extensions: extensionsSchema,
+	resource: resourceSchema.optional(),
+	extensions: extensionsSchema.optional(),
 });
 
-export const paymentRequirementsOption1Schema = z.object({
+const paymentRequirementsOption1Schema = z.object({
 	scheme: schemeSchema,
 	network: networkCAIP2Schema,
 	asset: evmChecksumAddressSchema.or(base58SolanaAddressSchema),
@@ -179,99 +179,101 @@ const verifyOption2Schema = z.object({
 	paymentRequirements: paymentRequirementsOption2Schema,
 });
 
-type AuthorizationAmountPayload = {
-	authorization: z.core.output<typeof authorizationSchema>;
-};
+// type AuthorizationAmountPayload = {
+// 	authorization: z.core.output<typeof authorizationSchema>;
+// };
 
-type Permit2AmountPayload = {
-	permit2Authorization: z.core.output<typeof permit2AuthorizationSchema>;
-};
+// type Permit2AmountPayload = {
+// 	permit2Authorization: z.core.output<typeof permit2AuthorizationSchema>;
+// };
 
-type PaymentPayloadForAmountValidation =
-	| AuthorizationAmountPayload
-	| Permit2AmountPayload;
+// type PaymentPayloadForAmountValidation =
+// 	| AuthorizationAmountPayload
+// 	| Permit2AmountPayload;
 
-const getAuthorizationCandidateAmount = (
-	payload: PaymentPayloadForAmountValidation
-) => {
-	if ("authorization" in payload) {
-		return {
-			amount: payload.authorization.value,
-			path: ["paymentPayload", "payload", "authorization", "value"],
-		};
-	}
+// const getAuthorizationCandidateAmount = (
+// 	payload: PaymentPayloadForAmountValidation
+// ) => {
+// 	if ("authorization" in payload) {
+// 		return {
+// 			amount: payload.authorization.value,
+// 			path: ["paymentPayload", "payload", "authorization", "value"],
+// 		};
+// 	}
 
-	return {
-		amount: payload.permit2Authorization.permitted.amount,
-		path: [
-			"paymentPayload",
-			"payload",
-			"permit2Authorization",
-			"permitted",
-			"amount",
-		],
-	};
-};
+// 	return {
+// 		amount: payload.permit2Authorization.permitted.amount,
+// 		path: [
+// 			"paymentPayload",
+// 			"payload",
+// 			"permit2Authorization",
+// 			"permitted",
+// 			"amount",
+// 		],
+// 	};
+// };
 
-const validateAmountGreaterThanOrEqualToRequired = ({
-	ctx,
-	candidateAmount,
-	requiredAmount,
-	path,
-}: {
-	ctx: z.core.$RefinementCtx<unknown>;
-	candidateAmount: string;
-	requiredAmount: string;
-	path: PropertyKey[];
-}) => {
-	try {
-		if (BigInt(candidateAmount) <= BigInt(requiredAmount)) {
-			ctx.addIssue({
-				code: "custom",
-				message:
-					"Authorization amount must be greater than or equal to the required amount",
-				path,
-			});
-		}
-	} catch {
-		ctx.addIssue({
-			code: "custom",
-			message:
-				"Authorization amount and required amount must be valid integer strings",
-			path,
-		});
-	}
-};
+// const validateAmountGreaterThanOrEqualToRequired = ({
+// 	ctx,
+// 	candidateAmount,
+// 	requiredAmount,
+// 	path,
+// }: {
+// 	ctx: z.core.$RefinementCtx<unknown>;
+// 	candidateAmount: string;
+// 	requiredAmount: string;
+// 	path: PropertyKey[];
+// }) => {
+// 	try {
+// 		if (BigInt(candidateAmount) <= BigInt(requiredAmount)) {
+// 			ctx.addIssue({
+// 				code: "custom",
+// 				message:
+// 					"Authorization amount must be greater than or equal to the required amount",
+// 				path,
+// 			});
+// 		}
+// 	} catch {
+// 		ctx.addIssue({
+// 			code: "custom",
+// 			message:
+// 				"Authorization amount and required amount must be valid integer strings",
+// 			path,
+// 		});
+// 	}
+// };
 
-const verifyOption1RefinedSchema = verifyOption1Schema.superRefine(
-	(data, ctx) => {
-		const { amount: candidateAmount, path } = getAuthorizationCandidateAmount(
-			data.paymentPayload.payload
-		);
+const verifyOption1RefinedSchema = verifyOption1Schema;
+// .superRefine(
+// 	(data, ctx) => {
+// 		const { amount: candidateAmount, path } = getAuthorizationCandidateAmount(
+// 			data.paymentPayload.payload
+// 		);
 
-		validateAmountGreaterThanOrEqualToRequired({
-			ctx,
-			candidateAmount,
-			requiredAmount: data.paymentRequirements.amount,
-			path,
-		});
-	}
-);
+// 		validateAmountGreaterThanOrEqualToRequired({
+// 			ctx,
+// 			candidateAmount,
+// 			requiredAmount: data.paymentRequirements.amount,
+// 			path,
+// 		});
+// 	}
+// );
 
-const verifyOption2RefinedSchema = verifyOption2Schema.superRefine(
-	(data, ctx) => {
-		const { amount: candidateAmount, path } = getAuthorizationCandidateAmount(
-			data.paymentPayload.payload
-		);
+const verifyOption2RefinedSchema = verifyOption2Schema;
+// .superRefine(
+// 	(data, ctx) => {
+// 		const { amount: candidateAmount, path } = getAuthorizationCandidateAmount(
+// 			data.paymentPayload.payload
+// 		);
 
-		validateAmountGreaterThanOrEqualToRequired({
-			ctx,
-			candidateAmount,
-			requiredAmount: data.paymentRequirements.maxAmountRequired,
-			path,
-		});
-	}
-);
+// 		validateAmountGreaterThanOrEqualToRequired({
+// 			ctx,
+// 			candidateAmount,
+// 			requiredAmount: data.paymentRequirements.maxAmountRequired,
+// 			path,
+// 		});
+// 	}
+// );
 
 export const x402VerifyRequestBodySchema = verifyOption1RefinedSchema.or(
 	verifyOption2RefinedSchema
@@ -411,35 +413,37 @@ const settleOption2Schema = z.object({
 	paymentRequirements: paymentRequirementsOption2Schema,
 });
 
-const settleOption1RefinedSchema = settleOption1Schema.superRefine(
-	(data, ctx) => {
-		const { amount: candidateAmount, path } = getAuthorizationCandidateAmount(
-			data.paymentPayload.payload
-		);
+const settleOption1RefinedSchema = settleOption1Schema;
+// .superRefine(
+// 	(data, ctx) => {
+// 		const { amount: candidateAmount, path } = getAuthorizationCandidateAmount(
+// 			data.paymentPayload.payload
+// 		);
 
-		validateAmountGreaterThanOrEqualToRequired({
-			ctx,
-			candidateAmount,
-			requiredAmount: data.paymentRequirements.amount,
-			path,
-		});
-	}
-);
+// 		validateAmountGreaterThanOrEqualToRequired({
+// 			ctx,
+// 			candidateAmount,
+// 			requiredAmount: data.paymentRequirements.amount,
+// 			path,
+// 		});
+// 	}
+// );
 
-const settleOption2RefinedSchema = settleOption2Schema.superRefine(
-	(data, ctx) => {
-		const { amount: candidateAmount, path } = getAuthorizationCandidateAmount(
-			data.paymentPayload.payload
-		);
+const settleOption2RefinedSchema = settleOption2Schema;
+// .superRefine(
+// 	(data, ctx) => {
+// 		const { amount: candidateAmount, path } = getAuthorizationCandidateAmount(
+// 			data.paymentPayload.payload
+// 		);
 
-		validateAmountGreaterThanOrEqualToRequired({
-			ctx,
-			candidateAmount,
-			requiredAmount: data.paymentRequirements.maxAmountRequired,
-			path,
-		});
-	}
-);
+// 		validateAmountGreaterThanOrEqualToRequired({
+// 			ctx,
+// 			candidateAmount,
+// 			requiredAmount: data.paymentRequirements.maxAmountRequired,
+// 			path,
+// 		});
+// 	}
+// );
 
 export const x402SettleRequestBodySchema = settleOption1RefinedSchema.or(
 	settleOption2RefinedSchema
